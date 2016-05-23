@@ -208,6 +208,7 @@ static zend_function_entry gnupg_methods[] = {
     PHP_FALIAS(keyinfo,             gnupg_keyinfo,          NULL)
     PHP_FALIAS(verify,              gnupg_verify,           NULL)
     PHP_FALIAS(geterror,            gnupg_geterror,         NULL)
+    PHP_FALIAS(geterrorinfo,        gnupg_geterrorinfo,     NULL)
     PHP_FALIAS(clearsignkeys,       gnupg_clearsignkeys,    NULL)
     PHP_FALIAS(clearencryptkeys,    gnupg_clearencryptkeys, NULL)
     PHP_FALIAS(cleardecryptkeys,    gnupg_cleardecryptkeys, NULL)
@@ -266,6 +267,7 @@ static zend_function_entry gnupg_functions[] = {
 	PHP_FE(gnupg_encryptsign,		NULL)
 	PHP_FE(gnupg_decryptverify,		NULL)
 	PHP_FE(gnupg_geterror,			NULL)
+	PHP_FE(gnupg_geterrorinfo,		NULL)
 	PHP_FE(gnupg_addsignkey,		NULL)
 	PHP_FE(gnupg_addencryptkey,		NULL)
 	PHP_FE(gnupg_adddecryptkey,		NULL)
@@ -587,7 +589,9 @@ PHP_FUNCTION(gnupg_setsignmode){
  * returns the last errormessage
  */
 PHP_FUNCTION(gnupg_geterror){
+
 	GNUPG_GETOBJ();
+
 	
 	if(!this){
 		if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &res) == FAILURE){
@@ -600,6 +604,32 @@ PHP_FUNCTION(gnupg_geterror){
 	}else{
 		RETURN_STRINGL(intern->errortxt, strlen(intern->errortxt), 1);
 	}
+}
+/* }}} */
+
+/* {{{ proto array gnupg_geterrorinfo(void)
+ * returns the last error message, internal message and code
+ */
+PHP_FUNCTION(gnupg_geterrorinfo){
+
+	GNUPG_GETOBJ();
+
+	if(!this){
+		if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r|", &res) == FAILURE){
+            return;
+        }
+        ZEND_FETCH_RESOURCE(intern,gnupg_object *, &res, -1, "ctx", le_gnupg);
+	}
+
+	array_init(return_value);
+	if(intern->errortxt){
+		add_assoc_string(return_value, "generic_message", (char *)intern->errortxt, 1);
+	}else{
+		add_assoc_bool(return_value, "generic_message", 0);
+	}
+	add_assoc_long(return_value, "gpgme_code", intern->err);
+	add_assoc_string(return_value, "gpgme_source", (char *)gpgme_strsource(intern->err), 1);
+	add_assoc_string(return_value, "gpgme_message", (char *)gpgme_strerror(intern->err), 1);
 }
 /* }}} */
 
